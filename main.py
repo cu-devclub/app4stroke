@@ -1,7 +1,5 @@
 import sys
 import warnings
-
-sys.path.insert(0, '..')
 if not sys.warnoptions:
     warnings.simplefilter("ignore")
 
@@ -24,7 +22,7 @@ import time
 import base64
 import io
 
-with open('/app/app4stroke_ml/configs.json', 'r') as f:
+with open('/app4stroke_ml/configs.json', 'r') as f:
     config = json.load(f)
 
 if config['device'] == 'auto':

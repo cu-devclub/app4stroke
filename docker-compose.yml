@@ -6,7 +6,7 @@ services:
     container_name: ml-ai4stroke
     command: python main.py
     volumes:
-      - .:/app
+      - .:/app4stroke_ml
     ports:
       - "9898:9898"
     network_mode: host
