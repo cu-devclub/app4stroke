@@ -44,7 +44,7 @@ batch_size = config['batch_size']
 app = FastAPI()
 
 
-@app.get("/api/analyse_dicom/")
+@app.post("/api/analyse_dicom/")
 async def analyse_dicom_api(request: Request):
     return await analyse_dicom_async(request)
 
