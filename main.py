@@ -145,7 +145,7 @@ async def predict_async(request):
 def predict(clinic_data):
 
     clinic_features = extract_handcraft_features(clinic_data)
-    clinic_features['max ct score'] = clinic_features['max_ct_score']
+    clinic_features['max ct score'] = clinic_data['max_ct_score']
 
     prob, top_pos_factors, top_pos_values, top_pos_impacts, top_neg_factors, top_neg_values, top_neg_impacts = predict_clinic(
         clinic_explainer, clinic_features)
