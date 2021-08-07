@@ -1,0 +1,11 @@
+{   
+    "host": "http://0.0.0.0",
+    "port": 9898,
+    "ssl_keyfile": null,
+    "ssl_certfile": null,
+    "ssl_keyfile_password": null,
+    "clinic_model_path": "/app/app4stroke_ml/models/xgboost_handcraft_batch2_labelv2_bench_seed1_v2.model",
+    "ct_model_path": "/app/app4stroke_ml/models/pylon_flip_resnet50.onnx",
+    "device": "cpu",
+    "batch_size": 16
+   }

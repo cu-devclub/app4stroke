@@ -1,0 +1,12 @@
+version: "3"
+   
+services:
+  ml-ai4stroke:
+    build: .
+    container_name: ml-ai4stroke
+    command: python main.py
+    volumes:
+      - .:/app
+    ports:
+      - "9898:9898"
+    network_mode: host
