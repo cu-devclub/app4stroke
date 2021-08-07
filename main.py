@@ -55,7 +55,7 @@ async def predict_api(request: Request):
 
 
 async def analyse_dicom_async(request):
-    dicom_paths = await request.json()['dicom_paths']
+    dicom_paths = (await request.json())['dicom_paths']
     return await run_in_threadpool(analyse_dicom, dicom_paths)
 
 
