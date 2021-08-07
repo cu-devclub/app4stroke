@@ -10,7 +10,7 @@ from collections import Iterable
 def is_dicom(file_path):
     
     try:
-        pydicom.filereader.read_file_meta_info(file_path)
+        pydicom.dcmread(file_path, stop_before_pixels=True)
         return True
         
     except:

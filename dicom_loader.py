@@ -6,7 +6,7 @@ from smart_open import smart_open
 from torch.utils.data import Dataset, DataLoader
 from albumentations import  Compose, Normalize, Resize
 from albumentations.pytorch import ToTensorV2
-from utils.dicom_utils import is_dicom, get_plane, extract_multiwindow_image
+from utils.dicom_utils import get_plane, extract_multiwindow_image
 
 torch.set_num_threads(1)
 cv2.setNumThreads(1)
@@ -22,13 +22,12 @@ WINDOWS = ((60, 40), (40, 40), (40, 80))  # (blood, tissue, brain) *start with b
 def gen_ct_array(dicom_paths, windows=WINDOWS):
     images = []
     for file_path in dicom_paths:
-        if is_dicom(file_path):
-            try:
-                data = pydicom.dcmread(smart_open(file_path))
-                if get_plane(data) == 'Axial':
-                    images.append(extract_multiwindow_image(data, windows))
-            except:
-                pass
+        try:
+            data = pydicom.dcmread(smart_open(file_path))
+            if get_plane(data) == 'Axial':
+                images.append(extract_multiwindow_image(data, windows))
+        except:
+            pass
 
     if len(images) > 0:
         ct_array = np.stack([img for img, _ in sorted(images, key=lambda x: x[1])], axis=0)
