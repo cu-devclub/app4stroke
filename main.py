@@ -6,6 +6,7 @@ if not sys.warnoptions:
 from starlette.concurrency import run_in_threadpool
 from utils.clinic_utils import extract_handcraft_features
 from utils.cam import overlay_cam
+from utils.file_mgt import download_data, extract_nested_zip, list_all_files
 from dicom_loader import get_flip_ct_array_loader
 from scipy.special import expit as sigmoid
 from fastapi import FastAPI, Request
@@ -21,9 +22,14 @@ import json
 import time
 import base64
 import io
+import os
+import shutil
 
 with open('/app4stroke_ml/configs.json', 'r') as f:
     config = json.load(f)
+
+with open(config['client_configs'], 'r') as f:
+    client_configs = json.load(f)   
 
 if config['device'] == 'auto':
     PROVIDER = 'CUDAExecutionProvider' if torch.cuda.is_available() else 'CPUExecutionProvider'
@@ -71,11 +77,38 @@ def analyse_dicom(dicom_paths):
     overlay_cam_time = 0
     total_time = 0
 
+    temp_ready = False
+    max_try = 10
+    while (not temp_ready) and (max_try > 0):
+        temp_dir = os.path.join('temp', os.urandom(24).hex())
+        try:
+            os.makedirs(temp_dir)
+            temp_ready = True
+        except:
+            max_try -= 1
+
     res = 'no file'
-    if len(dicom_paths) > 0:
+    if (len(dicom_paths) > 0) and temp_ready:
+
         t0 = time.time()
+
+        for dicom_path in dicom_paths:
+
+            save_path = os.path.join(temp_dir, dicom_path.split('/')[-1])
+
+            # download data from cloud if it cannot be accessed from local
+            if not os.path.exists(dicom_path):                
+                download_data(dicom_path, save_path, client_configs)
+            else:
+                shutil.copyfile(dicom_path, save_path)
+
+            # unzip if the file is zip
+            if save_path.endswith('.zip'):
+                extract_nested_zip(save_path, temp_dir)
+            
+        all_files = list_all_files(temp_dir)        
         data_loader = get_flip_ct_array_loader(
-            dicom_paths, batch_size=batch_size)
+            all_files, batch_size=batch_size)
         t1 = time.time()
         total_slices = len(data_loader.dataset)
         ct_scores, heatmaps = predict_ct(ct_model, data_loader)
@@ -113,6 +146,9 @@ def analyse_dicom(dicom_paths):
         "total_time": total_time,        
         "result": res,
     }
+
+    if temp_ready:
+        shutil.rmtree(temp_dir)
 
     return ct_results
 

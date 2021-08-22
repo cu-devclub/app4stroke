@@ -4,6 +4,7 @@
     "ssl_keyfile": null,
     "ssl_certfile": null,
     "ssl_keyfile_password": null,
+    "client_configs": null,
     "clinic_model_path": "/app4stroke_ml/models/xgboost_handcraft_batch2_labelv2_bench_seed1_v2.model",
     "ct_model_path": "/app4stroke_ml/models/pylon_flip_resnet50.onnx",
     "device": "cpu",
