@@ -20,7 +20,8 @@ def download_data(data_path: str, save_path: str, client_configs: dict):
     path_split = data_path.split('//')[1].split('/')
     bucket_name = path_split[0]
     object_name = '/'.join(path_split[1:])
-    client = boto3.client('s3', **client_configs)
+    session = boto3.Session()
+    client = session.client('s3', **client_configs)
     client.download_file(bucket_name, object_name, save_path)
 
 
