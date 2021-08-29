@@ -10,6 +10,7 @@ from utils.file_mgt import download_data, extract_nested_zip, list_all_files
 from dicom_loader import get_flip_ct_array_loader
 from scipy.special import expit as sigmoid
 from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from PIL import Image
 from xgboost import XGBClassifier
 import uvicorn
@@ -47,7 +48,35 @@ ct_model = onnxruntime.InferenceSession(
 
 batch_size = config['batch_size']
 
+
+
+class InternalErrorException(Exception):
+    def __init__(self):
+        self.name = "Internal Server Error"
+        self.statusCode = 500
+        self.statusText = "INTERNAL_SERVER_ERROR"
+        self.description = "Internal Server Error, please contact technical team."      
+
+
+class AnalyseDICOMException(Exception):
+    def __init__(self):
+        self.name = "Bad Request"
+        self.statusCode = 400
+        self.statusText = "BAD_REQUEST"
+        self.description = "Valid dicom not found, please try again."
+
+  
 app = FastAPI()
+
+
+@app.exception_handler(AnalyseDICOMException)
+async def unicorn_exception_handler(request: Request, exc: AnalyseDICOMException):
+    return json_exception(exc)
+
+
+@app.exception_handler(InternalErrorException)
+async def unicorn_exception_handler(request: Request, exc: InternalErrorException):
+    return json_exception(exc)
 
 
 @app.post("/api/analyse_dicom/")
@@ -61,12 +90,23 @@ async def predict_api(request: Request):
 
 
 async def analyse_dicom_async(request):
-    dicom_paths = (await request.json())['dicom_paths']
-    return await run_in_threadpool(analyse_dicom, dicom_paths)
+
+    try:
+        dicom_paths = (await request.json())['dicom_paths']
+        result = await run_in_threadpool(analyse_dicom, dicom_paths)
+    
+    except Exception as e:
+        print(e)
+        raise InternalErrorException()
+
+    if result['total_slices'] == 0:
+        raise AnalyseDICOMException()
+
+    return result
 
 
 def analyse_dicom(dicom_paths):
-    
+
     total_slices = 0
     img_bytes, heatmap_bytes, ct_scores = [], [], []
     max_score_slice = 0
@@ -109,29 +149,34 @@ def analyse_dicom(dicom_paths):
         all_files = list_all_files(temp_dir)        
         data_loader = get_flip_ct_array_loader(
             all_files, batch_size=batch_size)
-        t1 = time.time()
+        
         total_slices = len(data_loader.dataset)
-        ct_scores, heatmaps = predict_ct(ct_model, data_loader)
-        t2 = time.time()
-        imgs = data_loader.dataset.X[..., 2]
-        cams = [overlay_cam(img, heatmap)
-                for img, heatmap in zip(imgs, heatmaps)]
-        t3 = time.time()
 
-        img_bytes = list(map(encode_img, imgs))
-        heatmap_bytes = list(map(encode_img, cams))
+        if total_slices > 0:
 
-        max_ct_score = ct_scores.max().item()
-        max_score_slice = np.argmax(ct_scores).item() + 1
+            t1 = time.time()
+            ct_scores, heatmaps = predict_ct(ct_model, data_loader)
+            t2 = time.time()
+            imgs = data_loader.dataset.X[..., 2]
+            cams = [overlay_cam(img, heatmap)
+                    for img, heatmap in zip(imgs, heatmaps)]
+            t3 = time.time()
 
-        t4 = time.time()
+            img_bytes = list(map(encode_img, imgs))
+            heatmap_bytes = list(map(encode_img, cams))
 
-        load_time = t1 - t0
-        inference_time = t2 - t1
-        overlay_cam_time = t3 - t2
-        total_time = t4 - t0
+            max_ct_score = ct_scores.max().item()
+            max_score_slice = np.argmax(ct_scores).item() + 1
+            ct_scores = ct_scores.tolist()
 
-        res = 'complete'
+            t4 = time.time()
+
+            load_time = t1 - t0
+            inference_time = t2 - t1
+            overlay_cam_time = t3 - t2
+            total_time = t4 - t0
+
+            res = 'complete'
 
     ct_results = {
         "total_slices": total_slices,
@@ -139,7 +184,7 @@ def analyse_dicom(dicom_paths):
         "max_ct_score": max_ct_score,
         "img_bytes": img_bytes,
         "heatmap_bytes": heatmap_bytes,
-        "ct_scores": ct_scores.tolist(),
+        "ct_scores": ct_scores,
         "load_time": load_time,
         "inference_time": inference_time,
         "overlay_cam_time": overlay_cam_time,
@@ -151,6 +196,18 @@ def analyse_dicom(dicom_paths):
         shutil.rmtree(temp_dir)
 
     return ct_results
+
+
+def json_exception(exc):
+    return JSONResponse(
+        status_code=exc.statusCode,
+        content={
+                    "name": exc.name,
+                    "statusCode": exc.statusCode,
+                    "statusText": exc.statusText,
+                    "description": exc.description,
+        },
+    )
 
 
 def predict_ct(ct_model, data_loader):
@@ -170,12 +227,20 @@ def encode_img(image):
     pil_img = Image.fromarray(image)
     img_byte_arr = io.BytesIO()
     pil_img.save(img_byte_arr, format='JPEG')
-    return base64.encodebytes(img_byte_arr.getvalue()).decode('utf-8')
+    return base64.b64encode(img_byte_arr.getvalue()).decode('utf-8')
 
 
 async def predict_async(request):
-    clinic_data = await request.json()
-    return await run_in_threadpool(predict, clinic_data)
+    
+    try:
+        clinic_data = await request.json()
+        result = await run_in_threadpool(predict, clinic_data)
+    
+    except Exception as e:
+        print(e)
+        raise InternalErrorException()
+
+    return result
 
 
 def predict(clinic_data):
