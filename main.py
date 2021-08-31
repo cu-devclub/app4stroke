@@ -276,12 +276,12 @@ def predict_clinic(clinic_explainer, clinic_features):
     top_pos = x.iloc[len(x):len(x)-6:-1]
     top_pos_factors = top_pos.index.to_list()
     top_pos_values = top_pos['value'].to_list()
-    top_pos_impacts = top_pos['impact'].to_list()
+    top_pos_impacts = top_pos['impact'].astype(float).to_list()
 
     top_neg = x.iloc[:5]
     top_neg_factors = top_neg.index.to_list()
     top_neg_values = top_neg['value'].to_list()
-    top_neg_impacts = top_neg['impact'].to_list()
+    top_neg_impacts = top_neg['impact'].astype(float).to_list()
 
     return af_prob, top_pos_factors, top_pos_values, top_pos_impacts, top_neg_factors, top_neg_values, top_neg_impacts
 
