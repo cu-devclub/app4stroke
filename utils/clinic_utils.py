@@ -1,7 +1,7 @@
 from datetime import datetime
 
 
-def str_to_dt(date_str, time_str):
+def str_to_dt(date_str):
     return datetime.strptime(date_str, '%Y-%m-%dT%H:%M:%S.%fZ')
 
 
@@ -13,17 +13,16 @@ def extract_handcraft_features(data):
     features = dict()
     features['age'] = float(data['age'])
 
-    arrival_dt = str_to_dt(data['arrival_date'], data['arrival_time'])
+    arrival_dt = str_to_dt(data['arrival_date'])
 
     if data['onset'] == 'clearOnset':
-        clear_onset_dt = str_to_dt(
-            data['clear_onset_date'], data['clear_onset_time'])
+        clear_onset_dt = str_to_dt(data['clear_onset_date'])
         features['duration lsn (minute)'] = cal_duration(arrival_dt, clear_onset_dt)
         features['duration fsa (minute)'] = features['duration lsn (minute)']
 
     else:
-        lsn_dt = str_to_dt(data['lsn_date'], data['lsn_time'])
-        fsa_dt = str_to_dt(data['fsa_date'], data['fsa_time'])
+        lsn_dt = str_to_dt(data['lsn_date'])
+        fsa_dt = str_to_dt(data['fsa_date'])
         features['duration lsn (minute)'] = cal_duration(arrival_dt, lsn_dt)
         features['duration fsa (minute)'] = cal_duration(arrival_dt, fsa_dt)
 
