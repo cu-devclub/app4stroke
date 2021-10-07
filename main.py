@@ -142,18 +142,19 @@ def analyse_dicom(dicom_paths):
 
             save_path = os.path.join(temp_dir, dicom_path.split('/')[-1])
 
+            try:  
             # download data from cloud if it cannot be accessed from local
-            if not os.path.exists(dicom_path):    
-                try:            
+                if not os.path.exists(dicom_path):              
                     download_data(dicom_path, save_path, client_configs)
-                except:
-                    pass
-            else:
-                shutil.copyfile(dicom_path, save_path)
+                else:
+                    shutil.copyfile(dicom_path, save_path)
 
-            # unzip if the file is zip
-            if save_path.endswith('.zip'):
-                extract_nested_zip(save_path, temp_dir)
+                # unzip if the file is zip
+                if save_path.endswith('.zip'):
+                    extract_nested_zip(save_path, temp_dir)
+
+            except:
+                    pass
             
         all_files = list_all_files(temp_dir)        
         data_loader = get_flip_ct_array_loader(
