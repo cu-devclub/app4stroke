@@ -92,14 +92,17 @@ async def predict_api(request: Request):
 async def analyse_dicom_async(request):
 
     try:
-        dicom_paths = (await request.json())['dicom_paths']
+        data = await request.json()
+        dicom_paths = data['dicom_paths']
         result = await run_in_threadpool(analyse_dicom, dicom_paths)
     
     except Exception as e:
+        print(data)
         print(e)
         raise InternalErrorException()
 
     if result['total_slices'] == 0:
+        print('no valid files')
         raise AnalyseDICOMException()
 
     return result
@@ -133,6 +136,9 @@ def analyse_dicom(dicom_paths):
         t0 = time.time()
 
         for dicom_path in dicom_paths:
+
+            if not isinstance(dicom_path, str):
+                continue
 
             save_path = os.path.join(temp_dir, dicom_path.split('/')[-1])
 
